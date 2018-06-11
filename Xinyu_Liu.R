@@ -4,8 +4,8 @@
 load("C:/Users/Owner/Desktop/Root/mobileTrips.RData") 
 load("C:/Users/Owner/Desktop/Root/obd2Trips.RData") 
 
-# This function is used to calculate the normalized correlation between two signals/series of similar length
-# It takes in two vectors of the same length and return their normalized correlation value when lag = 0
+# This function is used to calculate the normalized cross-correlation between two signals/series of same length
+# It takes in two vectors of the same length and return their normalized cross-correlation score when lag = 0
 norm_corfun <- function (a, b) {
   a. <- a - mean(a) 
   b. <- b - mean(b)
@@ -15,8 +15,9 @@ norm_corfun <- function (a, b) {
   return(sum(a.*b.)/SaSb)
 }
 
-# This function is used to perform first differencing to trips
-# It takes in the Trip dataset, such as mobileTripsTrain or obd2TripsTrain in this case
+# This function is used to perform first-differencing to trips
+# It takes in the any Trips dataset, such as mobileTripsTrain or obd2TripsTrain in this case
+# It calculates the speed difference between the t-th and (t+1)-th timestamp and creates a diff column in each dataset. 
 first_differencing <- function (Trips) {
   for (i in 1:length(Trips)) {
     Trips[[i]]$diff <- ave(Trips[[i]]$speed, FUN=function(x) c(0, diff(x)))
@@ -26,21 +27,21 @@ first_differencing <- function (Trips) {
 
 # This function is used to return required output
 # It takes mobile trip datasets and obd trip datasets, and an additional threshold value as inputs
-# The threshold value is chosen based on how similar you want the returned signals to be.
+# The threshold value is chosen based on how similar the user wants the returned signals to be.
 result_function <- function (mobileTrips, obdTrips, threshold) {
   
   # The following code applies the first differencing function to update both data sets
   mobileTrips <- first_differencing(mobileTrips)
   obdTrips <- first_differencing(obdTrips)
   
-  # Initialize a 3-dimensional array storing all information
+  # Initialize a 3-dimensional array to store all information
   similarity_array <- array(0, dim = c(length(mobileTrips), length(obdTrips), 3))
   
-  # We need to compare m * n pairs of trips
+  # Need to compare m * n pairs of trips
   for (m in 1:length(mobileTrips)){
     for (n in 1:length(obdTrips)){
       
-      # Find the shorter trip between the two trips, and save the information on which trip is shorter as the third layer in the array
+      # Find the shorter trip between the two trips, and save the information about which trip is shorter as the third layer in the array
       if (nrow(mobileTrips[[m]]) >= nrow(obdTrips[[n]])) {
         shorter_signal <- obdTrips[[n]]$diff
         longer_signal <- mobileTrips[[m]]$diff
@@ -51,9 +52,8 @@ result_function <- function (mobileTrips, obdTrips, threshold) {
         similarity_array[m, n, 3] <- 2  # Use 2 to present mobile trips
       }
       
-      # Assuming the two trips are matching, we can see what are the highest correlation score that these two trips can obtain 
-      # and use this as the similarity measure. The following code creates a vector, the index indicates the potential matching positions
-      # and the value in the vector stores the similarity score
+      # Calculate the highest cross-correlation score these two trips can achieve and use this as the similarity measure.
+      # The following code creates a vector, the index of which indicates the matching position and the value of which stores the similarity score
       counter <- 1
       align_vector <- numeric(length(longer_signal) - length(shorter_signal) + 1)
       while (counter < (length(longer_signal) - length(shorter_signal) + 2)) {
@@ -62,20 +62,20 @@ result_function <- function (mobileTrips, obdTrips, threshold) {
         counter = counter + 1
       }
       
-      # From the align vector above, we obtain the best align position 
+      # From the align vector above, obtain the best align position 
       best_align_position <- which.max(align_vector)
       if (length(best_align_position) == 0) {
         best_align_position <- 0  # indicating no position found
       }
       
-      # From the align vector above, we obtain the best align value
+      # From the align vector above, obtain the best align value
       best_align_value <- max(align_vector)
       
       # The best align value is saved in the first layer of the array
       similarity_array[m, n, 1] <- best_align_value
       
-      # The best align position is saved in the first layer of the array
-      similarity_array[m, n, 2] <- best_align_position  # Use the second layer of the array to store the matching position
+      # The best align position is saved in the second layer of the array
+      similarity_array[m, n, 2] <- best_align_position  
     }
   }
   
@@ -83,8 +83,9 @@ result_function <- function (mobileTrips, obdTrips, threshold) {
   similarity_array[is.nan(similarity_array)] <- 0
   
   # To compare similarity, a threshold value is needed. 
-  # All the similarity scores that are larger than a specific threshold can be considered containing similar patterns.
-  matching_pairs <- which(similarity_array[ , , 1] > threshold, arr.ind = TRUE)  # Need to choose a threshhold
+  # if the similarity score between the two trips are above this threshold, 
+  # it can be considered that these two trips contain similar patterns.
+  matching_pairs <- which(similarity_array[ , , 1] > threshold, arr.ind = TRUE) 
   
   # Use the information stored in the array to extract the data frames and output the results in the required format
   result <- list()
@@ -106,7 +107,7 @@ result_function <- function (mobileTrips, obdTrips, threshold) {
   return(result)
 }
 
-# To obtain the final results, we need to call the following:
+# To obtain the final results, need to call the following:
 output <- result_function(mobileTripsTrain, obd2TripsTrain, 0.3)
 
 
