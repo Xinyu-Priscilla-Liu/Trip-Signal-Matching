@@ -23,6 +23,8 @@ The first four trips from mobile datasets are visualized:
 
 ![first_four_mobile_trip](https://user-images.githubusercontent.com/33201700/41252451-2ec29988-6d8b-11e8-888f-9631f91b138e.png)
 
+The first four trips from obd datasets are visualized:
+
 ![first_four_obd_trip](https://user-images.githubusercontent.com/33201700/41252456-333b34ca-6d8b-11e8-888d-0146c437e86f.png)
 
 From these plots, it can be inferred that the time series are not stationary, rendering most techniques not applicable. Therefore, first-differencing technique is used to stabilize the time series. The function in the code calculates the speed difference between the t-th and (t+1)-th timestamp and creates a diff column in each dataset. 
